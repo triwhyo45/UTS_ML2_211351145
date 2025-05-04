@@ -1,5 +1,6 @@
 import streamlit as st
 import numpy as np
+import pandas as pd
 import joblib
 import tensorflow as tf
 
@@ -7,7 +8,7 @@ import tensorflow as tf
 scaler = joblib.load('scaler.pkl')
 le = joblib.load('label_encoder.pkl')
 
-# Load model tflite
+# Load model tflite (❗ akan deprecated di TF 2.20+)
 interpreter = tf.lite.Interpreter(model_path="iris_model.tflite")
 interpreter.allocate_tensors()
 
@@ -16,7 +17,6 @@ output_details = interpreter.get_output_details()
 
 # Streamlit UI
 st.title("Prediksi Jenis Bunga Iris 🌸")
-
 st.write("Masukkan ukuran sepal dan petal bunga:")
 
 # Input
@@ -26,10 +26,14 @@ petal_length = st.number_input("Petal Length", min_value=0.0, step=0.1)
 petal_width = st.number_input("Petal Width", min_value=0.0, step=0.1)
 
 if st.button("Prediksi"):
-    input_data = np.array([[sepal_length, sepal_width, petal_length, petal_width]])
-    input_scaled = scaler.transform(input_data)
+    # Gunakan DataFrame agar punya nama kolom
+    input_df = pd.DataFrame([[sepal_length, sepal_width, petal_length, petal_width]],
+                            columns=["sepal_length", "sepal_width", "petal_length", "petal_width"])
 
-    # Masukkan input ke model tflite
+    # Transformasi dengan scaler
+    input_scaled = scaler.transform(input_df)
+
+    # Masukkan ke model TFLite
     interpreter.set_tensor(input_details[0]['index'], input_scaled.astype(np.float32))
     interpreter.invoke()
     output = interpreter.get_tensor(output_details[0]['index'])
